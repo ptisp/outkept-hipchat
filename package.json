@@ -1,0 +1,9 @@
+{
+  "name": "outkept-twitter",
+  "version": "0.0.1",
+  "dependencies": {
+    "hipchatter": "*",
+    "mongodb": "*",
+    "mubsub": "*"
+  }
+}
