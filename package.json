@@ -1,5 +1,5 @@
 {
-  "name": "outkept-twitter",
+  "name": "outkept-hipchat",
   "version": "0.0.1",
   "dependencies": {
     "hipchatter": "*",
