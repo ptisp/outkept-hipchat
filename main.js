@@ -23,7 +23,7 @@ function main(mongopubsub) {
   var opts;
   mongopubsub.subscribe('events', function (event) {
     console.log(event);
-    if(event.type == 'trigger' && event.level == 'alarmed') {
+    if(event.type == 'trigger' && (event.level == 'alarmed' || event.level == 'fired')) {
       opts = {
         message: 'Server ' + event.hostname + ' ' + event.level + ' with ' + event.value + ' ' + event.sensor,
         color: 'red',
@@ -40,7 +40,15 @@ function main(mongopubsub) {
     }
   });
 
-
+  /*
+  setInterval(function() {
+    hipchatter.history(process.env.HIPCHAT_ROOM, function(err, history) {
+      console.log(history);
+      console.log(history.items[history.items.length-1].message);
+    });
+  }, 30000);
+  */
+  
   /*
   mongopubsub.subscribe('messages', function (message) {
     console.log(message);
