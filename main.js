@@ -21,6 +21,7 @@ mongoClient.connect('mongodb://' + config.mongo_host + ':' + config.mongo_port +
 
 function main(mongopubsub) {
   var opts;
+
   mongopubsub.subscribe('events', function (event) {
     console.log(event);
     if(event.type == 'trigger' && (event.level == 'alarmed' || event.level == 'fired')) {
@@ -47,14 +48,33 @@ function main(mongopubsub) {
     }
   });
 
-  /*
+  var last = new Date().getTime();
+
   setInterval(function() {
     hipchatter.history(process.env.HIPCHAT_ROOM, function(err, history) {
-      console.log(history);
-      console.log(history.items[history.items.length-1].message);
+      var aux = history.items.filter(function(el) {
+        return el.from !== 'Jarvis' && el.from !== 'Icinga' && new Date(el.date).getTime() > last && el.message.indexOf('@jarvis ') !== -1;
+      });
+      if(aux.length > 0) {
+        last = new Date(aux[aux.length - 1].date).getTime();
+        for (var i = 0; i < aux.length; i++) {
+          processMsg(aux[i]);
+        }
+      }
+      console.log(aux);
     });
-  }, 30000);
-  */
+  }, 15000);
+
+  function processMsg(msg) {
+    var msgd = msg.trim().split(' ');
+    if(msgd.length == 4 && msgd[1] === 'unlock') {
+      var aux = {
+        hostname: msgd[2],
+        ip: msgd[3]
+      };
+      mongopubsub.publish('unlock', aux);
+    }
+  }
 
   /*
   mongopubsub.subscribe('messages', function (message) {
