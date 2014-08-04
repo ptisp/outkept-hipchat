@@ -37,6 +37,13 @@ function main(mongopubsub) {
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
       hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+    } else if(event.type == 'unlock') {
+      opts = {
+        message: 'Unlock requested: ' + event.message,
+        color: 'yellow',
+        token: process.env.HIPCHAT_TOKEN_ROOM
+      };
+      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
     }
   });
 
@@ -48,7 +55,7 @@ function main(mongopubsub) {
     });
   }, 30000);
   */
-  
+
   /*
   mongopubsub.subscribe('messages', function (message) {
     console.log(message);
