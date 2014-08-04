@@ -66,7 +66,7 @@ function main(mongopubsub) {
   }, 15000);
 
   function processMsg(msg) {
-    var msgd = msg.trim().split(' ');
+    var msgd = msg.message.trim().split(' ');
     if(msgd.length == 4 && msgd[1] === 'unlock') {
       var aux = {
         hostname: msgd[2],
