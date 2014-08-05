@@ -53,7 +53,7 @@ function main(mongopubsub) {
   setInterval(function() {
     hipchatter.history(process.env.HIPCHAT_ROOM, function(err, history) {
       var aux = history.items.filter(function(el) {
-        return el.from !== 'Jarvis' && el.from !== 'Icinga' && new Date(el.date).getTime() > last && el.message.indexOf('@jarvis ') !== -1;
+        return el.from !== 'Jarvis' && el.from !== 'Icinga' && new Date(el.date).getTime() > last && el.message.toLowerCase().indexOf('@jarvis ') !== -1;
       });
       if(aux.length > 0) {
         last = new Date(aux[aux.length - 1].date).getTime();
