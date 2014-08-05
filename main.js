@@ -61,7 +61,7 @@ function main(mongopubsub) {
           processMsg(aux[i]);
         }
       }
-      console.log(aux);
+      //console.log(aux);
     });
   }, 15000);
 
