@@ -67,12 +67,19 @@ function main(mongopubsub) {
 
   function processMsg(msg) {
     var msgd = msg.message.trim().split(' ');
-    if(msgd.length == 4 && msgd[1] === 'unlock') {
+    if(msgd.length == 4 && msgd[1].toLowerCase() === 'unlock') {
       var aux = {
         hostname: msgd[2],
         ip: msgd[3]
       };
       mongopubsub.publish('unlock', aux);
+    } else if(msgd.length == 2 && msgd[1].toLowerCase() === 'ping') {
+      var opts = {
+        message: 'Pong...',
+        color: 'green',
+        token: process.env.HIPCHAT_TOKEN_ROOM
+      };
+      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
     }
   }
 
