@@ -73,7 +73,7 @@ function main(mongopubsub) {
         hostname: msgd[2],
         ip: msgd[3]
       });
-    } else if(msgd.length == 5 && msgd[1].toLowerCase() === 'lock') {
+    } else if(msgd.length >= 5 && msgd[1].toLowerCase() === 'lock') {
       mongopubsub.publish('csf', {
         type: 'lock',
         hostname: msgd[2],
