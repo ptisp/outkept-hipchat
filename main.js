@@ -74,11 +74,15 @@ function main(mongopubsub) {
         ip: msgd[3]
       });
     } else if(msgd.length >= 5 && msgd[1].toLowerCase() === 'lock') {
+      var reason = '';
+      for (var i = 4; i < msgd.length; i++) {
+        reason += msgd[i];
+      }
       mongopubsub.publish('csf', {
         type: 'lock',
         hostname: msgd[2],
         ip: msgd[3],
-        reason: msgd[4]
+        reason: reason
       });
     } else if(msgd.length == 2 && msgd[1].toLowerCase() === 'ping') {
       var opts = {
