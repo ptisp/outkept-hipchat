@@ -38,9 +38,9 @@ function main(mongopubsub) {
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
       hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
-    } else if(event.type == 'unlock') {
+    } else if(event.type == 'csf') {
       opts = {
-        message: 'Unlock requested: ' + event.message,
+        message: event.message,
         color: 'yellow',
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
@@ -68,11 +68,18 @@ function main(mongopubsub) {
   function processMsg(msg) {
     var msgd = msg.message.trim().split(' ');
     if(msgd.length == 4 && msgd[1].toLowerCase() === 'unlock') {
-      var aux = {
+      mongopubsub.publish('csf', {
+        type: 'unlock',
         hostname: msgd[2],
         ip: msgd[3]
-      };
-      mongopubsub.publish('unlock', aux);
+      });
+    } else if(msgd.length >= 4 && msgd[1].toLowerCase() === 'lock') {
+      mongopubsub.publish('csf', {
+        type: 'lock',
+        hostname: msgd[2],
+        ip: msgd[3],
+        reason: msgd[4]
+      });
     } else if(msgd.length == 2 && msgd[1].toLowerCase() === 'ping') {
       var opts = {
         message: 'Pong...',
