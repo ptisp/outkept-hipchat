@@ -76,8 +76,9 @@ function main(mongopubsub) {
     } else if(msgd.length >= 5 && msgd[1].toLowerCase() === 'lock') {
       var reason = '';
       for (var i = 4; i < msgd.length; i++) {
-        reason += msgd[i];
+        reason = reason + ' ' + msgd[i];
       }
+      reason.trim();
       mongopubsub.publish('csf', {
         type: 'lock',
         hostname: msgd[2],
