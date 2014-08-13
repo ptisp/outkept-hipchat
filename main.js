@@ -120,14 +120,15 @@ function main(db) {
         hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
       }
     } else if(msgd.length == 3 && msgd[1].toLowerCase() === 'feeds') {
-      db.collection('feeds').find({}).sort({date: -1}).limit(parseInt(msgd[2])).toArray(function(err, feeds) {
+      var limit = parseInt(msgd[2]) || 3;
+      db.collection('feeds').find({}).sort({date: -1}).limit(limit).toArray(function(err, feeds) {
         var aux = '';
         for (var i = 0; i < feeds.length; i++) {
           aux += feeds[i].url + ' --- ';
         }
         aux = aux.substring(0, aux.length - 5);
         var opts = {
-          message: aux,
+          message: 'Last ' + limit + ' feeds: ' + aux,
           color: 'green',
           token: process.env.HIPCHAT_TOKEN_ROOM
         };
