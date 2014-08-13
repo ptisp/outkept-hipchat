@@ -120,7 +120,7 @@ function main(db) {
         hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
       }
     } else if(msgd.length == 3 && msgd[1].toLowerCase() === 'feeds') {
-      db.collection('feeds').find({}).sort({date: -1}).limit(msgd[2]).toArray(function(err, feeds) {
+      db.collection('feeds').find({}).sort({date: -1}).limit(parseInt(msgd[2])).toArray(function(err, feeds) {
         var opts = {
           message: feeds.toString(),
           color: 'green',
