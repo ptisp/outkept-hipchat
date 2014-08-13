@@ -121,8 +121,13 @@ function main(db) {
       }
     } else if(msgd.length == 3 && msgd[1].toLowerCase() === 'feeds') {
       db.collection('feeds').find({}).sort({date: -1}).limit(parseInt(msgd[2])).toArray(function(err, feeds) {
+        var aux = '';
+        for (var i = 0; i < feeds.length; i++) {
+          aux += feeds[i].url + ' - ';
+        }
+        aux = aux.substring(0, aux.length - 3);
         var opts = {
-          message: feeds.toString(),
+          message: aux,
           color: 'green',
           token: process.env.HIPCHAT_TOKEN_ROOM
         };
