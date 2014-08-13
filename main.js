@@ -123,9 +123,9 @@ function main(db) {
       db.collection('feeds').find({}).sort({date: -1}).limit(parseInt(msgd[2])).toArray(function(err, feeds) {
         var aux = '';
         for (var i = 0; i < feeds.length; i++) {
-          aux += feeds[i].url + ' - ';
+          aux += feeds[i].url + ' --- ';
         }
-        aux = aux.substring(0, aux.length - 3);
+        aux = aux.substring(0, aux.length - 5);
         var opts = {
           message: aux,
           color: 'green',
