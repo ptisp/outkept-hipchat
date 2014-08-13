@@ -128,6 +128,13 @@ function main(db) {
         };
         hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
       });
+    } else if(msgd.length == 2 && msgd[1].toLowerCase() === 'ignored') {
+      var opts = {
+        message: ignored.toString(),
+        color: 'green',
+        token: process.env.HIPCHAT_TOKEN_ROOM
+      };
+      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
     }
   }
 
