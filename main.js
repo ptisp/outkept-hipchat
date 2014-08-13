@@ -4,27 +4,28 @@ var mongoClient = require('mongodb').MongoClient,
   Hipchatter = require('hipchatter');
 
 var hipchatter = new Hipchatter(process.env.HIPCHAT_TOKEN);
-
+var ignored = [];
 
 mongoClient.connect('mongodb://' + config.mongo_host + ':' + config.mongo_port + '/' + config.mongo_database, function(err, conn) {
   if(err){
     console.log(err.message);
     throw new Error(err);
   } else {
-    db = conn;
-    var channel = mubsub(db).channel('pubsub');
-    channel.on('error', console.error);
-    main(channel);
+    main(conn);
   }
 });
 
 
-function main(mongopubsub) {
+function main(db) {
   var opts;
+
+  var mongopubsub = mubsub(db).channel('pubsub');
+
+  mongopubsub.on('error', console.error);
 
   mongopubsub.subscribe('events', function (event) {
     console.log(event);
-    if(event.type == 'trigger' && (event.level == 'alarmed' || event.level == 'fired')) {
+    if(event.type == 'trigger' && (event.level == 'alarmed' || event.level == 'fired') && ignored.indexOf(event.hostname) === -1) {
       opts = {
         message: 'Server ' + event.hostname + ' ' + event.level + ' with ' + event.value + ' ' + event.sensor,
         color: 'red',
@@ -92,6 +93,41 @@ function main(mongopubsub) {
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
       hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+    } else if(msgd.length == 3 && msgd[1].toLowerCase() === 'mute') {
+      ignored.push(msgd[2]);
+      var opts = {
+        message: msgd[2] + ' ignored.',
+        color: 'green',
+        token: process.env.HIPCHAT_TOKEN_ROOM
+      };
+      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+    } else if(msgd.length == 3 && msgd[1].toLowerCase() === 'unmute') {
+      var ind = ignored.indexOf(msgd[2]);
+      if(ind != -1) {
+        ignored.splice(ind, 1);
+        var opts = {
+          message: msgd[2] + ' unmuted.',
+          color: 'green',
+          token: process.env.HIPCHAT_TOKEN_ROOM
+        };
+        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+      } else {
+        var opts = {
+          message: msgd[2] + ' not being ignored.',
+          color: 'yellow',
+          token: process.env.HIPCHAT_TOKEN_ROOM
+        };
+        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+      }
+    } else if(msgd.length == 3 && msgd[1].toLowerCase() === 'feeds') {
+      db.collection('feeds').find({}).sort({date: -1}).limit(msgd[2]).toArray(function(err, feeds) {
+        var opts = {
+          message: feeds.toString(),
+          color: 'green',
+          token: process.env.HIPCHAT_TOKEN_ROOM
+        };
+        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+      });
     }
   }
 
