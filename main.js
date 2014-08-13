@@ -96,7 +96,7 @@ function main(db) {
     } else if(msgd.length == 3 && msgd[1].toLowerCase() === 'mute') {
       ignored.push(msgd[2]);
       var opts = {
-        message: msgd[2] + ' ignored.',
+        message: msgd[2] + ' was muted.',
         color: 'green',
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
@@ -106,14 +106,14 @@ function main(db) {
       if(ind != -1) {
         ignored.splice(ind, 1);
         var opts = {
-          message: msgd[2] + ' unmuted.',
+          message: msgd[2] + ' was unmuted.',
           color: 'green',
           token: process.env.HIPCHAT_TOKEN_ROOM
         };
         hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
       } else {
         var opts = {
-          message: msgd[2] + ' not being ignored.',
+          message: msgd[2] + ' is not muted.',
           color: 'yellow',
           token: process.env.HIPCHAT_TOKEN_ROOM
         };
@@ -128,7 +128,7 @@ function main(db) {
         };
         hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
       });
-    } else if(msgd.length == 2 && msgd[1].toLowerCase() === 'ignored') {
+    } else if(msgd.length == 2 && msgd[1].toLowerCase() === 'muted') {
       var opts = {
         message: ignored.toString(),
         color: 'green',
