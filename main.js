@@ -5,6 +5,7 @@ var mongoClient = require('mongodb').MongoClient,
 
 var hipchatter = new Hipchatter(process.env.HIPCHAT_TOKEN);
 var ignored = [];
+var notified = [];
 
 mongoClient.connect('mongodb://' + config.mongo_host + ':' + config.mongo_port + '/' + config.mongo_database, function(err, conn) {
   if(err){
@@ -26,12 +27,18 @@ function main(db) {
   mongopubsub.subscribe('events', function (event) {
     console.log(event);
     if(event.type == 'trigger' && (event.level == 'alarmed' || event.level == 'fired') && ignored.indexOf(event.hostname) === -1) {
-      opts = {
-        message: 'Server ' + event.hostname + ' ' + event.level + ' with ' + event.value + ' ' + event.sensor,
-        color: 'red',
-        token: process.env.HIPCHAT_TOKEN_ROOM
-      };
-      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+      if(processEvent(event)) {
+        opts = {
+          message: 'Server ' + event.hostname + ' ' + event.level + ' with ' + event.value + ' ' + event.sensor,
+          color: 'red',
+          token: process.env.HIPCHAT_TOKEN_ROOM
+        };
+        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+        notified.push({
+          'hostname': event.hostname,
+          'time': new Date().getTime() / 1000
+        });
+      }
     } else if(event.type == 'feed') {
       opts = {
         message: 'Feed ' + event.feed + ' reporting ' + event.url,
@@ -67,6 +74,34 @@ function main(db) {
       }
     });
   }, 15000);
+
+  function processEvent(event) {
+    var notified = findNotified(event.hostname);
+    var now = new Date().getTime()  / 1000;
+    if(!notified) {
+      return true;
+    } else if(notified && now - notified.time > 300) {
+      removeNotified(event.hostname);
+      return true;
+    }
+    return false;
+  }
+
+  function findNotified(hostname) {
+    for (var i = 0; i < notified.length; i++) {
+      if(notified[i].hostname === hostname) {
+        return notified[i];
+      }
+    }
+  }
+
+  function removeNotified(hostname) {
+    for (var i = 0; i < notified.length; i++) {
+      if(notified[i].hostname === hostname) {
+        notified.splice(i, 1);
+      }
+    }
+  }
 
   function processMsg(msg) {
     var msgd = msg.message.trim().split(' ');
