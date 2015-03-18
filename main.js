@@ -8,7 +8,7 @@ var ignored = [];
 var notified = [];
 
 mongoClient.connect('mongodb://' + config.mongo_host + ':' + config.mongo_port + '/' + config.mongo_database, function(err, conn) {
-  if(err){
+  if (err) {
     console.log(err.message);
     throw new Error(err);
   } else {
@@ -24,35 +24,35 @@ function main(db) {
 
   mongopubsub.on('error', console.error);
 
-  mongopubsub.subscribe('events', function (event) {
+  mongopubsub.subscribe('events', function(event) {
     console.log(event);
-    if(event.type == 'trigger' && (event.level == 'alarmed' || event.level == 'fired') && ignored.indexOf(event.hostname) === -1) {
-      if(processEvent(event)) {
+    if (event.type == 'trigger' && (event.level == 'alarmed' || event.level == 'fired') && ignored.indexOf(event.hostname) === -1) {
+      if (processEvent(event)) {
         opts = {
           message: 'Server ' + event.hostname + ' ' + event.level + ' with ' + event.value + ' ' + event.sensor,
           color: 'red',
           token: process.env.HIPCHAT_TOKEN_ROOM
         };
-        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
         notified.push({
           'hostname': event.hostname,
           'time': new Date().getTime() / 1000
         });
       }
-    } else if(event.type == 'feed') {
+    } else if (event.type == 'feed') {
       opts = {
         message: 'Feed ' + event.feed + ' reporting ' + event.url,
         color: 'red',
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
-      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
-    } else if(event.type == 'csf') {
+      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
+    } else if (event.type == 'csf') {
       opts = {
         message: event.message,
         color: 'yellow',
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
-      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
     }
   });
 
@@ -60,11 +60,11 @@ function main(db) {
 
   setInterval(function() {
     hipchatter.history(process.env.HIPCHAT_ROOM, function(err, history) {
-      if(history && history.items) {
+      if (history && history.items) {
         var aux = history.items.filter(function(el) {
           return el.from !== 'Jarvis' && el.from !== 'Icinga' && new Date(el.date).getTime() > last && el.message.toLowerCase().indexOf('@jarvis ') !== -1;
         });
-        if(aux.length > 0) {
+        if (aux.length > 0) {
           last = new Date(aux[aux.length - 1].date).getTime();
           for (var i = 0; i < aux.length; i++) {
             processMsg(aux[i]);
@@ -77,10 +77,10 @@ function main(db) {
 
   function processEvent(event) {
     var notified = findNotified(event.hostname);
-    var now = new Date().getTime()  / 1000;
-    if(!notified) {
+    var now = new Date().getTime() / 1000;
+    if (!notified) {
       return true;
-    } else if(notified && now - notified.time > 300) {
+    } else if (notified && now - notified.time > 300) {
       removeNotified(event.hostname);
       return true;
     }
@@ -89,7 +89,7 @@ function main(db) {
 
   function findNotified(hostname) {
     for (var i = 0; i < notified.length; i++) {
-      if(notified[i].hostname === hostname) {
+      if (notified[i].hostname === hostname) {
         return notified[i];
       }
     }
@@ -97,21 +97,21 @@ function main(db) {
 
   function removeNotified(hostname) {
     for (var i = 0; i < notified.length; i++) {
-      if(notified[i].hostname === hostname) {
+      if (notified[i].hostname === hostname) {
         notified.splice(i, 1);
       }
     }
   }
 
   function processMsg(msg) {
-    var msgd = msg.message.trim().split(' ');
-    if(msgd.length == 4 && msgd[1].toLowerCase() === 'unlock') {
+    var msgd = msg.message.trim().replace(/  /g, ' ').split(' ');
+    if (msgd.length == 4 && msgd[1].toLowerCase() === 'unlock') {
       mongopubsub.publish('csf', {
         type: 'unlock',
         hostname: msgd[2],
         ip: msgd[3]
       });
-    } else if(msgd.length >= 5 && msgd[1].toLowerCase() === 'lock') {
+    } else if (msgd.length >= 5 && msgd[1].toLowerCase() === 'lock') {
       var reason = '';
       for (var i = 4; i < msgd.length; i++) {
         reason = reason + ' ' + msgd[i];
@@ -123,42 +123,44 @@ function main(db) {
         ip: msgd[3],
         reason: reason
       });
-    } else if(msgd.length == 2 && msgd[1].toLowerCase() === 'ping') {
+    } else if (msgd.length == 2 && msgd[1].toLowerCase() === 'ping') {
       var opts = {
         message: 'Pong...',
         color: 'green',
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
-      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
-    } else if(msgd.length == 3 && msgd[1].toLowerCase() === 'mute') {
+      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
+    } else if (msgd.length == 3 && msgd[1].toLowerCase() === 'mute') {
       ignored.push(msgd[2]);
       var opts = {
         message: msgd[2] + ' was muted.',
         color: 'green',
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
-      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
-    } else if(msgd.length == 3 && msgd[1].toLowerCase() === 'unmute') {
+      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
+    } else if (msgd.length == 3 && msgd[1].toLowerCase() === 'unmute') {
       var ind = ignored.indexOf(msgd[2]);
-      if(ind != -1) {
+      if (ind != -1) {
         ignored.splice(ind, 1);
         var opts = {
           message: msgd[2] + ' was unmuted.',
           color: 'green',
           token: process.env.HIPCHAT_TOKEN_ROOM
         };
-        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
       } else {
         var opts = {
           message: msgd[2] + ' is not muted.',
           color: 'yellow',
           token: process.env.HIPCHAT_TOKEN_ROOM
         };
-        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
       }
-    } else if(msgd.length == 3 && msgd[1].toLowerCase() === 'feeds') {
+    } else if ((msgd.length == 3 || msgd.length == 2) && msgd[1].toLowerCase() === 'feeds') {
       var limit = parseInt(msgd[2]) || 3;
-      db.collection('feeds').find({}).sort({date: -1}).limit(limit).toArray(function(err, feeds) {
+      db.collection('feeds').find({}).sort({
+        date: -1
+      }).limit(limit).toArray(function(err, feeds) {
         var aux = '';
         for (var i = 0; i < feeds.length; i++) {
           aux += feeds[i].url + ' --- ';
@@ -169,15 +171,15 @@ function main(db) {
           color: 'green',
           token: process.env.HIPCHAT_TOKEN_ROOM
         };
-        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+        hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
       });
-    } else if(msgd.length == 2 && msgd[1].toLowerCase() === 'muted') {
+    } else if (msgd.length == 2 && msgd[1].toLowerCase() === 'muted') {
       var opts = {
         message: ignored.toString(),
         color: 'green',
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
-      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err){});
+      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
     }
   }
 
