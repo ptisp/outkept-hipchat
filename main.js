@@ -1,11 +1,12 @@
 var mongoClient = require('mongodb').MongoClient,
-  mubsub = require('mubsub'),
   config = require('./conf/config'),
-  Hipchatter = require('hipchatter');
+  Hipchatter = require('hipchatter'),
+  redis = require('redis');
 
 var hipchatter = new Hipchatter(process.env.HIPCHAT_TOKEN);
 var ignored = [];
 var notified = [];
+
 
 mongoClient.connect('mongodb://' + config.mongo_host + ':' + config.mongo_port + '/' + config.mongo_database, function(err, conn) {
   if (err) {
@@ -16,16 +17,15 @@ mongoClient.connect('mongodb://' + config.mongo_host + ':' + config.mongo_port +
   }
 });
 
-
 function main(db) {
   var opts;
 
-  var mongopubsub = mubsub(db).channel('pubsub');
+  var subscriber = redis.createClient();
+  subscriber.subscribe('events');
 
-  mongopubsub.on('error', console.error);
-
-  mongopubsub.subscribe('events', function(event) {
+  subscriber.on('message', function (channel, event) {
     console.log(event);
+    event = JSON.parse(event);
     if (event.type == 'trigger' && (event.level == 'alarmed' || event.level == 'fired') && ignored.indexOf(event.hostname) === -1) {
       if (processEvent(event)) {
         opts = {
@@ -46,7 +46,7 @@ function main(db) {
         token: process.env.HIPCHAT_TOKEN_ROOM
       };
       hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
-    } else if (event.type == 'csf') {
+    } else if (event.type == 'plugins') {
       opts = {
         message: event.message,
         color: 'yellow',
@@ -60,17 +60,16 @@ function main(db) {
 
   setInterval(function() {
     hipchatter.history(process.env.HIPCHAT_ROOM, function(err, history) {
-      if (history && history.items) {
-        var aux = history.items.filter(function(el) {
-          return el.from !== 'Jarvis' && el.from !== 'Icinga' && new Date(el.date).getTime() > last && el.message.toLowerCase().indexOf('@jarvis ') !== -1;
-        });
-        if (aux.length > 0) {
-          last = new Date(aux[aux.length - 1].date).getTime();
-          for (var i = 0; i < aux.length; i++) {
+      if (history && history.items && history.items.length > 0) {
+        var aux = history.items;
+
+        for (var i = 0; i < aux.length; i++) {
+          if (aux[i].message.indexOf('@jarvis') === 0 && new Date(aux[i].date).getTime() > last) {
+            console.log(aux[i]);
+            last = new Date(aux[i].date).getTime();
             processMsg(aux[i]);
           }
         }
-        //console.log(aux);
       }
     });
   }, 15000);
@@ -104,25 +103,46 @@ function main(db) {
   }
 
   function processMsg(msg) {
+    var publisher = redis.createClient();
+
     var msgd = msg.message.trim().replace(/  /g, ' ').split(' ');
-    if (msgd.length == 4 && msgd[1].toLowerCase() === 'unlock') {
-      mongopubsub.publish('csf', {
+    if (msgd.length == 2 && msgd[1].toLowerCase() === 'help') {
+      var opts = {
+        message: '@jarvis suspend/unsuspend server domain -- @jarvis lock server ip reason -- @jarvis unlock server ip -- @jarvis ping -- @jarvis feeds 10 -- @jarvis muted -- @jarvis mute/unmute server',
+        color: 'green',
+        token: process.env.HIPCHAT_TOKEN_ROOM
+      };
+      hipchatter.notify(process.env.HIPCHAT_ROOM, opts, function(err) {});
+    } else if (msgd.length == 4 && msgd[1].toLowerCase() === 'suspend') {
+      publisher.publish('suspend', JSON.stringify({
+        type: 'suspend',
+        hostname: msgd[2],
+        domain: msgd[3]
+      }));
+    } else if (msgd.length == 4 && msgd[1].toLowerCase() === 'unsuspend') {
+      publisher.publish('suspend', JSON.stringify({
+        type: 'unsuspend',
+        hostname: msgd[2],
+        domain: msgd[3]
+      }));
+    } else if (msgd.length == 4 && msgd[1].toLowerCase() === 'unlock') {
+      publisher.publish('csf', JSON.stringify({
         type: 'unlock',
         hostname: msgd[2],
         ip: msgd[3]
-      });
+      }));
     } else if (msgd.length >= 5 && msgd[1].toLowerCase() === 'lock') {
       var reason = '';
       for (var i = 4; i < msgd.length; i++) {
         reason = reason + ' ' + msgd[i];
       }
       reason.trim();
-      mongopubsub.publish('csf', {
+      publisher.publish('csf', JSON.stringify({
         type: 'lock',
         hostname: msgd[2],
         ip: msgd[3],
         reason: reason
-      });
+      }));
     } else if (msgd.length == 2 && msgd[1].toLowerCase() === 'ping') {
       var opts = {
         message: 'Pong...',
@@ -183,11 +203,6 @@ function main(db) {
     }
   }
 
-  /*
-  mongopubsub.subscribe('messages', function (message) {
-    console.log(message);
-  });
-  */
 
   console.log('Notifier started.');
 }
